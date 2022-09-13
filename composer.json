@@ -1,0 +1,21 @@
+{
+    "name": "bitpart/dataapi",
+    "description": "Access your Movable Type via DataAPI",
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "bitpart\\dataapi\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "bit part LLC",
+            "email": "info@bit-part.net"
+        }
+    ],
+    "require": {
+        "php": ">=7.4",
+        "guzzlehttp/guzzle": "^7.5",
+        "vlucas/phpdotenv": "^5.4"
+    }
+}
