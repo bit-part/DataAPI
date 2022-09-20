@@ -171,13 +171,14 @@ class DataAPI
     }
 
     /**
+     * @param string $objectType entry|content_data
      * @param string $path
      * @param array $params
      * @param int $publish
      * @return array
      * @throws \GuzzleHttp\Exception\GuzzleException
      */
-    public function create(string $path, array $params, int $publish = 0): array
+    public function create(string $objectType, string $path, array $params, int $publish = 0): array
     {
         try {
             $response = $this->client->request('post', $path, [
@@ -186,7 +187,7 @@ class DataAPI
                     'X-MT-Authorization' =>' MTAuth accessToken=' . $this->accessToken
                 ],
                 'form_params' => [
-                    'entry' => json_encode($params),
+                    ($objectType) => json_encode($params),
                     'publish' => $publish
                 ],
                 'debug' => $this->debug,
@@ -307,7 +308,7 @@ class DataAPI
      */
     public function createEntry(int $siteId, array $params = [], int $publish = 1): array
     {
-        return $this->create("sites/{$siteId}/entries", $params, $publish);
+        return $this->create('entry', "sites/{$siteId}/entries", $params, $publish);
     }
 
     /**
