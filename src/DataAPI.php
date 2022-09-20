@@ -293,7 +293,7 @@ class DataAPI
      * @return array
      * @throws \GuzzleHttp\Exception\GuzzleException
      */
-    public function getEntry(int $siteId, int $entryId, array $params = null): array
+    public function getEntry(int $siteId, int $entryId, array $params = []): array
     {
         return $this->get("sites/{$siteId}/entries/{$entryId}", $params);
     }
