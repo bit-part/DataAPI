@@ -3,30 +3,37 @@
 namespace bitpart\dataapi;
 
 use GuzzleHttp\Client;
-use GuzzleHttp\Exception\RequestException;
+use GuzzleHttp\Psr7;
+use GuzzleHttp\Exception\ClientException;
 
 class DataAPI
 {
-    private $clientId = 'php-client';
-    private $client;
+    private string $clientId = 'php-client';
+    private Client $client;
 
-    private $username = '';
-    private $password = '';
-    private $baseUrl = '';
+    private string $username = '';
+    private string $password = '';
+    private string $baseUrl = '';
 
-    private $accessToken = '';
-    private $expiresIn = '';
-    private $remember = '';
-    private $sessionId = '';
+    private string $accessToken = '';
+    private string $expiresIn = '';
+    private string $remember = '';
+    private string $sessionId = '';
+    private string $debug = '';
 
     /**
+     * @param string $username
+     * @param string $password
+     * @param string $baseUrl
      * @param array $options
+     * @param bool $debug
      */
-    public function __construct(string $username, string $password, $baseUrl, array $options = [])
+    public function __construct(string $username, string $password, string $baseUrl, array $options = [], bool $debug = false)
     {
         $this->username = $username;
         $this->password = $password;
         $this->baseUrl = $baseUrl;
+        $this->debug = $debug;
 
         $op = [
             'base_uri' => $this->baseUrl,
@@ -36,6 +43,15 @@ class DataAPI
             $op = array_merge($op, $options);
         }
         $this->client = new Client($op);
+    }
+
+    /**
+     * @param ClientException $e
+     * @return array
+     */
+    private function error(ClientException $e): array
+    {
+        return ['error' => true, 'message' => Psr7\Message::toString($e->getResponse())];
     }
 
     /**
@@ -53,7 +69,8 @@ class DataAPI
                     'username' => $this->username,
                     'password' => $this->password,
                     'clientId' => $this->clientId,
-                ]
+                ],
+                'debug' => $this->debug,
             ]);
             $body = $response->getBody();
             $body = json_decode($body, true);
@@ -61,10 +78,8 @@ class DataAPI
             $this->expiresIn = $body['expiresIn'];
             $this->remember = $body['remember'];
             $this->sessionId = $body['sessionId'];
-        } catch (RequestException $e) {
-            if ($e->hasResponse()) {
-                echo Psr7\Message::toString($e->getResponse());
-            }
+        } catch (ClientException $e) {
+            echo Psr7\Message::toString($e->getResponse());
         }
         return $this->accessToken;
     }
@@ -82,22 +97,22 @@ class DataAPI
             ],
             'form_params' => [
                 'clientId' => $this->clientId
-            ]
+            ],
+            'debug' => $this->debug,
         ]);
         $body = $response->getBody();
         return json_decode($body, true);
     }
 
     /**
-     * @param $objectName
-     * @param $siteId
-     * @param $params
+     * @param string $path
+     * @param array $params
      * @return array
      * @throws \GuzzleHttp\Exception\GuzzleException
      */
-    public function list($objectName, $siteId, $params = null): array
+    public function list(string $path, array $params = []): array
     {
-        $query = $params ? [
+        $query = count($params) ? [
             'query' => $params
         ] : [];
         if ($params && isset($params['status']) && strpos($params['status'], 'Draft') !== false) {
@@ -106,192 +121,287 @@ class DataAPI
                 'X-MT-Authorization' =>' MTAuth accessToken=' . $this->accessToken
             ];
         }
-        $response = $this->client->request('get', "sites/{$siteId}/{$objectName}", $query);
-        $body = $response->getBody();
-        return json_decode($body, true);
+        try {
+            $response = $this->client->request('get', $path, $query);
+            $body = $response->getBody();
+            return json_decode($body, true);
+        } catch (ClientException $e) {
+            return $this->error($e);
+        }
     }
 
     /**
-     * @param $params
+     * @param array $params
      * @return array
      * @throws \GuzzleHttp\Exception\GuzzleException
      */
-    public function search($params = null): array
+    public function search(array $params): array
     {
-        $query = $params ? [
+        $query = count($params) ? [
             'query' => $params
         ] : [];
-        $response = $this->client->request('get', 'search', $query);
-        $body = $response->getBody();
-        return json_decode($body, true);
+        try {
+            $response = $this->client->request('get', 'search', $query);
+            $body = $response->getBody();
+            return json_decode($body, true);
+        } catch (ClientException $e) {
+            return $this->error($e);
+        }
     }
 
     /**
-     * @param $objectName
-     * @param $siteId
-     * @param $entryId
-     * @param $params
+     * @param string $path
+     * @param array $params
      * @return array
      * @throws \GuzzleHttp\Exception\GuzzleException
      */
-    public function get($objectName, $siteId, $entryId, $params = null): array
+    public function get(string $path, array $params = []): array
     {
-        $query = $params ? [
+        $query = count($params) ? [
             'query' => $params
         ] : [];
-        $response = $this->client->request('get', "sites/{$siteId}/{$objectName}/{$entryId}", $query);
-        $body = $response->getBody();
-        return json_decode($body, true);
+        try {
+            $response = $this->client->request('get', $path, $query);
+            $body = $response->getBody();
+            return json_decode($body, true);
+        } catch (ClientException $e) {
+            return $this->error($e);
+        }
+
     }
 
     /**
-     * @param $objectName
-     * @param $siteId
-     * @param $params
-     * @param $publish
+     * @param string $objectType entry|content_data
+     * @param string $path
+     * @param array $params
+     * @param int $publish
      * @return array
      * @throws \GuzzleHttp\Exception\GuzzleException
      */
-    public function create($objectName, $siteId, $params = [], $publish): array
+    public function create(string $objectType, string $path, array $params, int $publish = 0): array
     {
-        $response = $this->client->request('post', "sites/{$siteId}/{$objectName}", [
-            'headers' => [
-                'Content-Type' => 'application/x-www-form-urlencoded',
-                'X-MT-Authorization' =>' MTAuth accessToken=' . $this->accessToken
-            ],
-            'form_params' => [
-                'entry' => json_encode($params),
-                'publish' => $publish
-            ],
-            'debug' => true
-        ]);
-        $body = $response->getBody();
-        return json_decode($body, true);
+        try {
+            $response = $this->client->request('post', $path, [
+                'headers' => [
+                    'Content-Type' => 'application/x-www-form-urlencoded',
+                    'X-MT-Authorization' =>' MTAuth accessToken=' . $this->accessToken
+                ],
+                'form_params' => [
+                    ($objectType) => json_encode($params),
+                    'publish' => $publish
+                ],
+                'debug' => $this->debug,
+            ]);
+            $body = $response->getBody();
+            return json_decode($body, true);
+        } catch (ClientException $e) {
+            return $this->error($e);
+        }
     }
 
     /**
-     * @param $objectName
-     * @param $siteId
-     * @param $objectId
-     * @param $params
-     * @param $publish
+     * @param string $objectType
+     * @param string $path
+     * @param array $params
+     * @param int $publish
      * @return array
      * @throws \GuzzleHttp\Exception\GuzzleException
      */
-    public function update($objectName, $siteId, $objectId, $params = [], $publish = 1): array
+    public function update(string $objectType, string $path, array $params = [], int $publish = 1): array
     {
-        $response = $this->client->request('put', "sites/{$siteId}/{$objectName}/{$objectId}", [
-            'headers' => [
-                'Content-Type' => 'application/x-www-form-urlencoded',
-                'X-MT-Authorization' =>' MTAuth accessToken=' . $this->accessToken
-            ],
-            'form_params' => [
-                'entry' => json_encode($params),
-                'publish' => $publish
-            ],
-            'debug' => true
-        ]);
-        $body = $response->getBody();
-        return json_decode($body, true);
+        try {
+            $response = $this->client->request('put', $path, [
+                'headers' => [
+                    'Content-Type' => 'application/x-www-form-urlencoded',
+                    'X-MT-Authorization' =>' MTAuth accessToken=' . $this->accessToken
+                ],
+                'form_params' => [
+                    ($objectType) => json_encode($params),
+                    'publish' => $publish
+                ],
+                'debug' => $this->debug,
+            ]);
+            $body = $response->getBody();
+            return json_decode($body, true);
+        } catch (ClientException $e) {
+            return $this->error($e);
+        }
     }
 
     /**
-     * @param $objectName
-     * @param $siteId
-     * @param $objectId
-     * @param $params
+     * @param string $path
      * @return array
      * @throws \GuzzleHttp\Exception\GuzzleException
      */
-    public function delete($objectName, $siteId, $objectId, $params = []): array
+    public function delete(string $path): array
     {
-        $response = $this->client->request('delete', "sites/{$siteId}/{$objectName}/{$objectId}", [
-            'headers' => [
-                'Content-Type' => 'application/x-www-form-urlencoded',
-                'X-MT-Authorization' =>' MTAuth accessToken=' . $this->accessToken
-            ],
-            'debug' => true
-        ]);
-        $body = $response->getBody();
-        return json_decode($body, true);
+        try {
+            $response = $this->client->request('delete', $path, [
+                'headers' => [
+                    'Content-Type' => 'application/x-www-form-urlencoded',
+                    'X-MT-Authorization' =>' MTAuth accessToken=' . $this->accessToken
+                ],
+                'debug' => $this->debug,
+            ]);
+            $body = $response->getBody();
+            return json_decode($body, true);
+        } catch (ClientException $e) {
+            return $this->error($e);
+        }
+
     }
 
     /**
-     * @param $siteId
-     * @param $templateId
+     * @param int $siteId
+     * @param int $templateId
      * @return array
      * @throws \GuzzleHttp\Exception\GuzzleException
      */
-    public function publish($siteId, $templateId): array
+    public function publish(int $siteId, int $templateId): array
     {
-        $response = $this->client->request('post', "sites/{$siteId}/templates/{$templateId}/publish", [
-            'headers' => [
-                'Content-Type' => 'application/x-www-form-urlencoded',
-                'X-MT-Authorization' =>' MTAuth accessToken=' . $this->accessToken
-            ],
-            'debug' => true
-        ]);
-        $body = $response->getBody();
-        return json_decode($body, true);
+        try {
+            $response = $this->client->request('post', "sites/{$siteId}/templates/{$templateId}/publish", [
+                'headers' => [
+                    'Content-Type' => 'application/x-www-form-urlencoded',
+                    'X-MT-Authorization' =>' MTAuth accessToken=' . $this->accessToken
+                ],
+                'debug' => $this->debug,
+            ]);
+            $body = $response->getBody();
+            return json_decode($body, true);
+        } catch (ClientException $e) {
+            return $this->error($e);
+        }
+    }
+
+    //----------------------------------------------------------------------
+    // Entry
+    //----------------------------------------------------------------------
+    /**
+     * @param string $siteId
+     * @param array $params
+     * @return array
+     * @throws \GuzzleHttp\Exception\GuzzleException
+     */
+    public function listEntries(string $siteId, array $params = []): array
+    {
+        return $this->list("sites/{$siteId}/entries", $params);
     }
 
     /**
-     * @param $siteId
-     * @param $params
+     * @param int $siteId
+     * @param int $entryId
+     * @param array|null $params
      * @return array
      * @throws \GuzzleHttp\Exception\GuzzleException
      */
-    public function listEntries($siteId, $params = null): array
+    public function getEntry(int $siteId, int $entryId, array $params = []): array
     {
-        return $this->list('entries', $siteId, $params);
+        return $this->get("sites/{$siteId}/entries/{$entryId}", $params);
     }
 
     /**
-     * @param $siteId
-     * @param $entryId
-     * @param $params
+     * @param int $siteId
+     * @param array $params
+     * @param int $publish
      * @return array
      * @throws \GuzzleHttp\Exception\GuzzleException
      */
-    public function getEntry($siteId, $entryId, $params = null): array
+    public function createEntry(int $siteId, array $params = [], int $publish = 1): array
     {
-        return $this->get('entries', $siteId, $entryId, $params);
+        return $this->create('entry', "sites/{$siteId}/entries", $params, $publish);
     }
 
     /**
-     * @param $siteId
-     * @param $params
-     * @param $publish
+     * @param int $siteId
+     * @param int $entryId
+     * @param array $params
+     * @param int $publish
      * @return array
      * @throws \GuzzleHttp\Exception\GuzzleException
      */
-    public function createEntry($siteId, $params = null, $publish = 1): array
+    public function updateEntry(int $siteId, int $entryId, array $params = [], int $publish = 1): array
     {
-        return $this->create('entries', $siteId, $params, $publish);
+        return $this->update('entry', "sites/{$siteId}/entries/{$entryId}", $params, $publish);
     }
 
     /**
-     * @param $siteId
-     * @param $entryId
-     * @param $params
-     * @param $publish
+     * @param int $siteId
+     * @param int $entryId
      * @return array
      * @throws \GuzzleHttp\Exception\GuzzleException
      */
-    public function updateEntry($siteId, $entryId, $params = null, $publish = 1): array
+    public function deleteEntry(int $siteId, int $entryId): array
     {
-        return $this->update('entries', $siteId, $entryId, $params, $publish);
+        return $this->delete("sites/{$siteId}/entries/{$entryId}");
+    }
+
+    //----------------------------------------------------------------------
+    // Content Data
+    //----------------------------------------------------------------------
+    /**
+     * @param int $siteId
+     * @param int $contentTypeId
+     * @param array $params
+     * @return array
+     * @throws \GuzzleHttp\Exception\GuzzleException
+     */
+    public function listContentData(int $siteId, int $contentTypeId, array $params = []): array
+    {
+        $path = "sites/{$siteId}/contentTypes/{$contentTypeId}/data";
+        return $this->list($path, $params);
     }
 
     /**
-     * @param $siteId
-     * @param $entryId
-     * @param $params
+     * @param int $siteId
+     * @param int $contentTypeId
+     * @param int $contentDataId
+     * @param string $fields
+     * @param array|null $params
      * @return array
      * @throws \GuzzleHttp\Exception\GuzzleException
      */
-    public function deleteEntry($siteId, $entryId, $params = null): array
+    public function getContentData(int $siteId, int $contentTypeId, int $contentDataId, string $fields = '', array $params = []): array
     {
-        return $this->delete('entries', $siteId, $entryId, $params);
+        return $this->get("sites/{$siteId}/contentTypes/{$contentTypeId}/data/{$contentDataId}{$fields}", $params);
+    }
+
+    /**
+     * @param int $siteId
+     * @param int $contentTypeId
+     * @param array $params
+     * @param int $publish
+     * @return array
+     * @throws \GuzzleHttp\Exception\GuzzleException
+     */
+    public function createContentData(int $siteId, int $contentTypeId, array $params, int $publish = 1): array
+    {
+        return $this->create('content_data', "sites/{$siteId}/contentTypes/{$contentTypeId}/data", $params, $publish);
+    }
+
+    /**
+     * @param int $siteId
+     * @param int $contentTypeId
+     * @param array $params
+     * @param int $publish
+     * @return array
+     * @throws \GuzzleHttp\Exception\GuzzleException
+     */
+    public function updateContentData(int $siteId, int $contentTypeId, int $contentDataId, array $params, int $publish = 1): array
+    {
+        return $this->create('content_data', "sites/{$siteId}/contentTypes/{$contentTypeId}/data/{$contentDataId}", $params, $publish);
+    }
+
+    /**
+     * @param int $siteId
+     * @param int $contentTypeId
+     * @param array $params
+     * @param int $publish
+     * @return array
+     * @throws \GuzzleHttp\Exception\GuzzleException
+     */
+    public function deleteContentData(int $siteId, int $contentTypeId, int $contentDataId): array
+    {
+        return $this->delete("sites/{$siteId}/contentTypes/{$contentTypeId}/data/{$contentDataId}");
     }
 }
