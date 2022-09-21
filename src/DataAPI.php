@@ -200,13 +200,14 @@ class DataAPI
     }
 
     /**
+     * @param string $objectType
      * @param string $path
      * @param array $params
      * @param int $publish
      * @return array
      * @throws \GuzzleHttp\Exception\GuzzleException
      */
-    public function update(string $path, array $params = [], int $publish = 1): array
+    public function update(string $objectType, string $path, array $params = [], int $publish = 1): array
     {
         try {
             $response = $this->client->request('put', $path, [
@@ -215,7 +216,7 @@ class DataAPI
                     'X-MT-Authorization' =>' MTAuth accessToken=' . $this->accessToken
                 ],
                 'form_params' => [
-                    'entry' => json_encode($params),
+                    ($objectType) => json_encode($params),
                     'publish' => $publish
                 ],
                 'debug' => $this->debug,
@@ -321,7 +322,7 @@ class DataAPI
      */
     public function updateEntry(int $siteId, int $entryId, array $params = [], int $publish = 1): array
     {
-        return $this->update("sites/{$siteId}/entries/{$entryId}", $params, $publish);
+        return $this->update('entry', "sites/{$siteId}/entries/{$entryId}", $params, $publish);
     }
 
     /**
