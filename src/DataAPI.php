@@ -3,6 +3,7 @@
 namespace bitpart\dataapi;
 
 use GuzzleHttp\Client;
+use GuzzleHttp\Exception\GuzzleException;
 use GuzzleHttp\Psr7;
 use GuzzleHttp\Exception\ClientException;
 
@@ -37,7 +38,7 @@ class DataAPI
 
         $op = [
             'base_uri' => $this->baseUrl,
-            'timeout'  => 120.0,
+            'timeout' => 120.0,
         ];
         if (!empty($options)) {
             $op = array_merge($op, $options);
@@ -56,7 +57,7 @@ class DataAPI
 
     /**
      * @return string
-     * @throws \GuzzleHttp\Exception\GuzzleException
+     * @throws GuzzleException
      */
     public function authentication(): string
     {
@@ -86,14 +87,14 @@ class DataAPI
 
     /**
      * @return array
-     * @throws \GuzzleHttp\Exception\GuzzleException
+     * @throws GuzzleException
      */
     public function getToken(): array
     {
         $response = $this->client->request('post', 'token', [
             'headers' => [
                 'Content-Type' => 'application/x-www-form-urlencoded',
-                'X-MT-Authorization' =>' MTAuth sessionId=' . $this->sessionId
+                'X-MT-Authorization' => ' MTAuth sessionId=' . $this->sessionId
             ],
             'form_params' => [
                 'clientId' => $this->clientId
@@ -108,7 +109,7 @@ class DataAPI
      * @param string $path
      * @param array $params
      * @return array
-     * @throws \GuzzleHttp\Exception\GuzzleException
+     * @throws GuzzleException
      */
     public function list(string $path, array $params = []): array
     {
@@ -118,7 +119,7 @@ class DataAPI
         if ($params && isset($params['status']) && strpos($params['status'], 'Draft') !== false) {
             $query['headers'] = [
                 'Content-Type' => 'application/x-www-form-urlencoded',
-                'X-MT-Authorization' =>' MTAuth accessToken=' . $this->accessToken
+                'X-MT-Authorization' => ' MTAuth accessToken=' . $this->accessToken
             ];
         }
         try {
@@ -133,7 +134,7 @@ class DataAPI
     /**
      * @param array $params
      * @return array
-     * @throws \GuzzleHttp\Exception\GuzzleException
+     * @throws GuzzleException
      */
     public function search(array $params): array
     {
@@ -153,7 +154,7 @@ class DataAPI
      * @param string $path
      * @param array $params
      * @return array
-     * @throws \GuzzleHttp\Exception\GuzzleException
+     * @throws GuzzleException
      */
     public function get(string $path, array $params = []): array
     {
@@ -176,7 +177,7 @@ class DataAPI
      * @param array $params
      * @param int $publish
      * @return array
-     * @throws \GuzzleHttp\Exception\GuzzleException
+     * @throws GuzzleException
      */
     public function create(string $objectType, string $path, array $params, int $publish = 0): array
     {
@@ -184,7 +185,7 @@ class DataAPI
             $response = $this->client->request('post', $path, [
                 'headers' => [
                     'Content-Type' => 'application/x-www-form-urlencoded',
-                    'X-MT-Authorization' =>' MTAuth accessToken=' . $this->accessToken
+                    'X-MT-Authorization' => ' MTAuth accessToken=' . $this->accessToken
                 ],
                 'form_params' => [
                     ($objectType) => json_encode($params),
@@ -205,7 +206,7 @@ class DataAPI
      * @param array $params
      * @param int $publish
      * @return array
-     * @throws \GuzzleHttp\Exception\GuzzleException
+     * @throws GuzzleException
      */
     public function update(string $objectType, string $path, array $params = [], int $publish = 1): array
     {
@@ -213,7 +214,7 @@ class DataAPI
             $response = $this->client->request('put', $path, [
                 'headers' => [
                     'Content-Type' => 'application/x-www-form-urlencoded',
-                    'X-MT-Authorization' =>' MTAuth accessToken=' . $this->accessToken
+                    'X-MT-Authorization' => ' MTAuth accessToken=' . $this->accessToken
                 ],
                 'form_params' => [
                     ($objectType) => json_encode($params),
@@ -231,7 +232,7 @@ class DataAPI
     /**
      * @param string $path
      * @return array
-     * @throws \GuzzleHttp\Exception\GuzzleException
+     * @throws GuzzleException
      */
     public function delete(string $path): array
     {
@@ -239,7 +240,7 @@ class DataAPI
             $response = $this->client->request('delete', $path, [
                 'headers' => [
                     'Content-Type' => 'application/x-www-form-urlencoded',
-                    'X-MT-Authorization' =>' MTAuth accessToken=' . $this->accessToken
+                    'X-MT-Authorization' => ' MTAuth accessToken=' . $this->accessToken
                 ],
                 'debug' => $this->debug,
             ]);
@@ -255,7 +256,7 @@ class DataAPI
      * @param int $siteId
      * @param int $templateId
      * @return array
-     * @throws \GuzzleHttp\Exception\GuzzleException
+     * @throws GuzzleException
      */
     public function publish(int $siteId, int $templateId): array
     {
@@ -263,7 +264,7 @@ class DataAPI
             $response = $this->client->request('post', "sites/{$siteId}/templates/{$templateId}/publish", [
                 'headers' => [
                     'Content-Type' => 'application/x-www-form-urlencoded',
-                    'X-MT-Authorization' =>' MTAuth accessToken=' . $this->accessToken
+                    'X-MT-Authorization' => ' MTAuth accessToken=' . $this->accessToken
                 ],
                 'debug' => $this->debug,
             ]);
@@ -281,7 +282,7 @@ class DataAPI
      * @param string $siteId
      * @param array $params
      * @return array
-     * @throws \GuzzleHttp\Exception\GuzzleException
+     * @throws GuzzleException
      */
     public function listEntries(string $siteId, array $params = []): array
     {
@@ -293,7 +294,7 @@ class DataAPI
      * @param int $entryId
      * @param array|null $params
      * @return array
-     * @throws \GuzzleHttp\Exception\GuzzleException
+     * @throws GuzzleException
      */
     public function getEntry(int $siteId, int $entryId, array $params = []): array
     {
@@ -305,7 +306,7 @@ class DataAPI
      * @param array $params
      * @param int $publish
      * @return array
-     * @throws \GuzzleHttp\Exception\GuzzleException
+     * @throws GuzzleException
      */
     public function createEntry(int $siteId, array $params = [], int $publish = 1): array
     {
@@ -318,7 +319,7 @@ class DataAPI
      * @param array $params
      * @param int $publish
      * @return array
-     * @throws \GuzzleHttp\Exception\GuzzleException
+     * @throws GuzzleException
      */
     public function updateEntry(int $siteId, int $entryId, array $params = [], int $publish = 1): array
     {
@@ -329,7 +330,7 @@ class DataAPI
      * @param int $siteId
      * @param int $entryId
      * @return array
-     * @throws \GuzzleHttp\Exception\GuzzleException
+     * @throws GuzzleException
      */
     public function deleteEntry(int $siteId, int $entryId): array
     {
@@ -344,7 +345,7 @@ class DataAPI
      * @param int $contentTypeId
      * @param array $params
      * @return array
-     * @throws \GuzzleHttp\Exception\GuzzleException
+     * @throws GuzzleException
      */
     public function listContentData(int $siteId, int $contentTypeId, array $params = []): array
     {
@@ -359,7 +360,7 @@ class DataAPI
      * @param string $fields
      * @param array|null $params
      * @return array
-     * @throws \GuzzleHttp\Exception\GuzzleException
+     * @throws GuzzleException
      */
     public function getContentData(int $siteId, int $contentTypeId, int $contentDataId, string $fields = '', array $params = []): array
     {
@@ -372,7 +373,7 @@ class DataAPI
      * @param array $params
      * @param int $publish
      * @return array
-     * @throws \GuzzleHttp\Exception\GuzzleException
+     * @throws GuzzleException
      */
     public function createContentData(int $siteId, int $contentTypeId, array $params, int $publish = 1): array
     {
@@ -385,7 +386,7 @@ class DataAPI
      * @param array $params
      * @param int $publish
      * @return array
-     * @throws \GuzzleHttp\Exception\GuzzleException
+     * @throws GuzzleException
      */
     public function updateContentData(int $siteId, int $contentTypeId, int $contentDataId, array $params, int $publish = 1): array
     {
@@ -398,10 +399,102 @@ class DataAPI
      * @param array $params
      * @param int $publish
      * @return array
-     * @throws \GuzzleHttp\Exception\GuzzleException
+     * @throws GuzzleException
      */
     public function deleteContentData(int $siteId, int $contentTypeId, int $contentDataId): array
     {
         return $this->delete("sites/{$siteId}/contentTypes/{$contentTypeId}/data/{$contentDataId}");
+    }
+
+    //----------------------------------------------------------------------
+    // File Upload
+    //----------------------------------------------------------------------
+    /**
+     * ファイルをアップロードします。
+     *
+     * クエリパラメータ:
+     *  - overwrite_once (integer: 0|1)
+     *
+     * multipart/form-data の各パラメータ:
+     *  - autoRenameIfExists (integer: 0|1, default: 0)
+     *  - autoRenameNonAscii (integer: 0|1)
+     *  - file (binary) 実際のファイルデータ。ファイルパスを指定した場合は fopen() で読み込みます。
+     *  - normalizeOrientation (integer: 0|1, default: 1)
+     *  - path (string) サイト内のアップロード先パス
+     *  - site_id (integer) サイトID
+     *
+     * @param array $params アップロードに必要なパラメータ群
+     * @param int $overwrite_once クエリパラメータ overwrite_once (0 または 1)
+     * @return array API レスポンス
+     * @throws GuzzleException
+     */
+    public function uploadFile(array $params, int $overwrite_once = 0): array
+    {
+        if (!isset($params['site_id'])) {
+            return ['error' => true, 'message' => 'site_id is required'];
+        }
+        if (!isset($params['file'])) {
+            return ['error' => true, 'message' => 'file is required'];
+        }
+        $siteId = $params['site_id'];
+
+        // クエリパラメータ
+        $query = [];
+        if ($overwrite_once === 1) {
+            $query['overwrite_once'] = 1;
+        }
+
+        // multipart 用データの構築
+        $multipart = [];
+        $allowedFields = ['autoRenameIfExists', 'autoRenameNonAscii', 'normalizeOrientation', 'path', 'site_id'];
+        foreach ($allowedFields as $field) {
+            if (isset($params[$field])) {
+                $multipart[] = [
+                    'name' => $field,
+                    'contents' => $params[$field]
+                ];
+            }
+        }
+
+        // file パラメータの処理（fopenでファイルリソースを取得）
+        $fileValue = $params['file'];
+        if (is_string($fileValue) && file_exists($fileValue)) {
+            $handle = fopen($fileValue, 'r');  // ファイルリソースを取得
+            $multipart[] = [
+                'name' => 'file',
+                'contents' => $handle,
+                'filename' => basename($fileValue)
+            ];
+        } else {
+            $multipart[] = [
+                'name' => 'file',
+                'contents' => $fileValue
+            ];
+        }
+
+        try {
+            $response = $this->client->request('post', "assets/upload", [
+                'headers' => [
+                    'X-MT-Authorization' => 'MTAuth accessToken=' . $this->accessToken,
+                ],
+                'query' => $query,
+                'multipart' => $multipart,
+                'debug' => $this->debug,
+            ]);
+            $body = $response->getBody();
+            $result = json_decode($body, true);
+
+            // リクエスト後、開いたファイルリソースを明示的に閉じる
+            if (isset($handle) && is_resource($handle)) {
+                fclose($handle);
+            }
+            return $result;
+        } catch (ClientException $e) {
+            // 例外発生時もリソースが開いていれば閉じる
+            if (isset($handle) && is_resource($handle)) {
+                fclose($handle);
+            }
+            return $this->error($e);
+        }
     }
 }
