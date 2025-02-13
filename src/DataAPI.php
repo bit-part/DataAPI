@@ -404,4 +404,96 @@ class DataAPI
     {
         return $this->delete("sites/{$siteId}/contentTypes/{$contentTypeId}/data/{$contentDataId}");
     }
+
+    //----------------------------------------------------------------------
+    // File Upload
+    //----------------------------------------------------------------------
+    /**
+     * ファイルをアップロードします。
+     *
+     * クエリパラメータ:
+     *  - overwrite_once (integer: 0|1)
+     *
+     * multipart/form-data の各パラメータ:
+     *  - autoRenameIfExists (integer: 0|1, default: 0)
+     *  - autoRenameNonAscii (integer: 0|1)
+     *  - file (binary) 実際のファイルデータ。ファイルパスを指定した場合は fopen() で読み込みます。
+     *  - normalizeOrientation (integer: 0|1, default: 1)
+     *  - path (string) サイト内のアップロード先パス
+     *  - site_id (integer) サイトID
+     *
+     * @param array $params アップロードに必要なパラメータ群
+     * @param int $overwrite_once クエリパラメータ overwrite_once (0 または 1)
+     * @return array API レスポンス
+     * @throws GuzzleException
+     */
+    public function uploadFile(array $params, int $overwrite_once = 0): array
+    {
+        if (!isset($params['site_id'])) {
+            return ['error' => true, 'message' => 'site_id is required'];
+        }
+        if (!isset($params['file'])) {
+            return ['error' => true, 'message' => 'file is required'];
+        }
+        $siteId = $params['site_id'];
+
+        // クエリパラメータ
+        $query = [];
+        if ($overwrite_once === 1) {
+            $query['overwrite_once'] = 1;
+        }
+
+        // multipart 用データの構築
+        $multipart = [];
+        $allowedFields = ['autoRenameIfExists', 'autoRenameNonAscii', 'normalizeOrientation', 'path', 'site_id'];
+        foreach ($allowedFields as $field) {
+            if (isset($params[$field])) {
+                $multipart[] = [
+                    'name' => $field,
+                    'contents' => $params[$field]
+                ];
+            }
+        }
+
+        // file パラメータの処理（fopenでファイルリソースを取得）
+        $fileValue = $params['file'];
+        if (is_string($fileValue) && file_exists($fileValue)) {
+            $handle = fopen($fileValue, 'r');  // ファイルリソースを取得
+            $multipart[] = [
+                'name' => 'file',
+                'contents' => $handle,
+                'filename' => basename($fileValue)
+            ];
+        } else {
+            $multipart[] = [
+                'name' => 'file',
+                'contents' => $fileValue
+            ];
+        }
+
+        try {
+            $response = $this->client->request('post', "assets/upload", [
+                'headers' => [
+                    'X-MT-Authorization' => 'MTAuth accessToken=' . $this->accessToken,
+                ],
+                'query' => $query,
+                'multipart' => $multipart,
+                'debug' => $this->debug,
+            ]);
+            $body = $response->getBody();
+            $result = json_decode($body, true);
+
+            // リクエスト後、開いたファイルリソースを明示的に閉じる
+            if (isset($handle) && is_resource($handle)) {
+                fclose($handle);
+            }
+            return $result;
+        } catch (ClientException $e) {
+            // 例外発生時もリソースが開いていれば閉じる
+            if (isset($handle) && is_resource($handle)) {
+                fclose($handle);
+            }
+            return $this->error($e);
+        }
+    }
 }
