@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+## 0.3.0 - 2025-02-19
+
+### Added
+
+- 0901a82 feat: Add support for uploading a file
+
+### Other
+
+- 0abf7a9 refactor: Clean up
+- e137aaa chore: Add .idea to .gitignore
+
 ## 0.2.0 - 2022-09-21
 
 ### Added
