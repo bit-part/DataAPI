@@ -156,11 +156,17 @@ class DataAPI
      * @return array
      * @throws GuzzleException
      */
-    public function get(string $path, array $params = []): array
+    public function get(string $path, array $params = [], bool $auth = false): array
     {
         $query = count($params) ? [
             'query' => $params
         ] : [];
+        if ($auth) {
+            $query['headers'] = [
+                'Content-Type' => 'application/x-www-form-urlencoded',
+                'X-MT-Authorization' => ' MTAuth accessToken=' . $this->accessToken
+            ];
+        }
         try {
             $response = $this->client->request('get', $path, $query);
             $body = $response->getBody();
@@ -293,12 +299,13 @@ class DataAPI
      * @param int $siteId
      * @param int $entryId
      * @param array|null $params
+     * @param bool $auth
      * @return array
      * @throws GuzzleException
      */
-    public function getEntry(int $siteId, int $entryId, array $params = []): array
+    public function getEntry(int $siteId, int $entryId, array $params = [], bool $auth = false): array
     {
-        return $this->get("sites/{$siteId}/entries/{$entryId}", $params);
+        return $this->get("sites/{$siteId}/entries/{$entryId}", $params, $auth);
     }
 
     /**
@@ -359,12 +366,13 @@ class DataAPI
      * @param int $contentDataId
      * @param string $fields
      * @param array|null $params
+     * @param bool $auth
      * @return array
      * @throws GuzzleException
      */
-    public function getContentData(int $siteId, int $contentTypeId, int $contentDataId, string $fields = '', array $params = []): array
+    public function getContentData(int $siteId, int $contentTypeId, int $contentDataId, string $fields = '', array $params = [], bool $auth = false): array
     {
-        return $this->get("sites/{$siteId}/contentTypes/{$contentTypeId}/data/{$contentDataId}{$fields}", $params);
+        return $this->get("sites/{$siteId}/contentTypes/{$contentTypeId}/data/{$contentDataId}{$fields}", $params, $auth);
     }
 
     /**
