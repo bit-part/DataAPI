@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 0.4.0 - 2025-03-05
+
+- fb0c1d0 fix: Fix method call in updateContentData() to call update instead of create
+- 673d9e8 feat: Enable retrieval of unpublished entries and content data
+
 ## 0.3.0 - 2025-02-19
 
 ### Added
