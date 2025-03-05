@@ -398,7 +398,7 @@ class DataAPI
      */
     public function updateContentData(int $siteId, int $contentTypeId, int $contentDataId, array $params, int $publish = 1): array
     {
-        return $this->create('content_data', "sites/{$siteId}/contentTypes/{$contentTypeId}/data/{$contentDataId}", $params, $publish);
+        return $this->update('content_data', "sites/{$siteId}/contentTypes/{$contentTypeId}/data/{$contentDataId}", $params, $publish);
     }
 
     /**
